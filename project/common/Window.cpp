@@ -24,7 +24,7 @@
 		int ret = GetWindowTextA(hwnd, title_buffer, 512);
 		//title blacklist: "Program Manager", "Setup"
 		std::string title = std::string(title_buffer);
-		std::cout << "Hiding: " << title << std::endl;
+		printf("Hiding: %s", title.c_str());
 		if (IsWindowVisible(hwnd) && ret != 0 && title != names->at(0) && title != "Program Manager" && title != "Setup") {
 			_hide_window(hwnd);
 			names->insert(names->begin() + 1, title);
