@@ -1,20 +1,43 @@
 #if defined(HX_WINDOWS)
 	void _hide_window(HWND hwnd) {
 		//ShowWindow(hwnd, SW_HIDE);
-		int res = SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-		if (res)
-			SetLayeredWindowAttributes(window, 0, 127, LWA_ALPHA);
+		const int bufferSize = 256;
+		char currentTitle[bufferSize];
+		GetWindowTextA(hwnd, currentTitle, bufferSize);
+
+		char newTitle[bufferSize];
+		strcpy_s(newTitle, bufferSize, "Hidden - ");
+		strcat_s(newTitle, bufferSize, currentTitle);
+
+		SetWindowTextA(hwnd, newTitle);
+		//int res = SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+		//if (res)
+		//	SetLayeredWindowAttributes(window, 0, 127, LWA_ALPHA);
 	}
 	void _show_window(HWND hwnd, bool active) {
 		ShowWindow(hwnd, active ? SW_SHOW : SW_SHOWNA);
 		//SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
-		int res = SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-		if (res)
-			SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
+		//int res = SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+		//if (res)
+		//	SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
+		const int bufferSize = 256;
+		char currentTitle[bufferSize];
+		GetWindowTextA(hwnd, currentTitle, bufferSize);
+
+		const char* substringToRemove = "Hidden - ";
+
+		char* substringPosition = strstr(currentTitle, substringToRemove);
+
+		if (substringPosition != NULL) {
+			memmove(substringPosition, substringPosition + strlen(substringToRemove), strlen(substringPosition + strlen(substringToRemove)) + 1);
+
+			SetWindowTextA(hwnd, currentTitle);
+		}
 	}
 	void _show_window2(HWND hwnd, bool active) {
-		ShowWindow(hwnd, active ? SW_SHOW : SW_SHOWNA);
-		SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
+		//ShowWindow(hwnd, active ? SW_SHOW : SW_SHOWNA);
+		_show_window(hwnd, active);
+		//SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
 	}
 
 	static BOOL CALLBACK enumWinProc(HWND hwnd, LPARAM lparam) {
@@ -22,9 +45,10 @@
 		char title_buffer[512] = {0};
 		int ret = GetWindowTextA(hwnd, title_buffer, 512);
 		//title blacklist: "Program Manager", "Setup"
-		if (IsWindowVisible(hwnd) && ret != 0 && std::string(title_buffer) != names->at(0) && std::string(title_buffer) != "Program Manager" && std::string(title_buffer) != "Setup") {
+		std::string title = std::string(title_buffer);
+		if (IsWindowVisible(hwnd) && ret != 0 && title != names->at(0) && title != "Program Manager" && title != "Setup") {
 			_hide_window(hwnd);
-			names->insert(names->begin() + 1, std::string(title_buffer));
+			names->insert(names->begin() + 1, title);
 		}
 		return 1;
 	}
