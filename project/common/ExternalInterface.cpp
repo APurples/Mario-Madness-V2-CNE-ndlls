@@ -124,121 +124,10 @@ value result = val_callN(root->get(), args, num_args);
 
 // FYI: if the type is bool or int or double (haxe float) then it does the conversion automatically
 
-#if defined(HX_WINDOWS)
-	static BOOL CALLBACK enumWinProc(HWND hwnd, LPARAM lparam) {
-		std::vector<std::string> *names = reinterpret_cast<std::vector<std::string> *>(lparam);
-		char title_buffer[512] = {0};
-		int ret = GetWindowTextA(hwnd, title_buffer, 512);
-		//title blacklist: "Program Manager", "Setup"
-		if (IsWindowVisible(hwnd) && ret != 0 && std::string(title_buffer) != names->at(0) && std::string(title_buffer) != "Program Manager" && std::string(title_buffer) != "Setup") {
-			ShowWindow(hwnd, SW_HIDE);
-			names->insert(names->begin() + 1, std::string(title_buffer));
-		}
-		return 1;
-	}
-#endif
-
-#if defined(HX_WINDOWS)
-	static value change_wallpaper(value _path)
-	{
-		wchar_t* wallpath = const_cast< wchar_t* >(val_wstring(_path));
-		//wchar_t* wallpath = const_cast<wchar_t*>(path.wchar_str());
-		SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, reinterpret_cast<void*>(wallpath), SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-		return alloc_bool(true);
-	}
-	DEFINE_PRIME1 (change_wallpaper);
-#else
-	static value change_wallpaper(value _path) {
-		return alloc_bool(false);
-	}
-	DEFINE_PRIME1 (change_wallpaper);
-#endif
-
-#if defined(HX_WINDOWS)
-	static value get_wallpaper()
-	{
-		WCHAR buffer[1024] = {0};
-		SystemParametersInfoW(SPI_GETDESKWALLPAPER, 256, &buffer, NULL);
-		//return alloc_string(reinterpret_cast<const char*>(buffer));
-		return alloc_wstring_len(buffer, wcslen(buffer));
-	}
-	DEFINE_PRIME0 (get_wallpaper);
-#else
-	static value get_wallpaper() {
-		return alloc_string("");
-	}
-	DEFINE_PRIME0 (get_wallpaper);
-#endif
-
-#if defined(HX_WINDOWS)
-	static value set_transparent (bool active, int r, int g, int b) {
-		HWND hWnd = GetActiveWindow();
-		int res = SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-		if (res)
-		{
-			SetLayeredWindowAttributes(hWnd, RGB(r, g, b), active?1:0, LWA_COLORKEY);
-		}
-		return alloc_bool(res != 0);
-	}
-	DEFINE_PRIME4 (set_transparent);
-#else
-	static value set_transparent (bool active, int r, int g, int b) {
-		return alloc_bool(false);
-	}
-	DEFINE_PRIME4 (set_transparent);
-#endif
-
-#if defined(HX_WINDOWS)
-	static value remove_transparent () {
-		HWND hWnd = GetActiveWindow();
-		int res = SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) ^ ~WS_EX_LAYERED);
-		return alloc_bool(res != 0);
-	}
-	DEFINE_PRIME0 (remove_transparent);
-#else
-	static value remove_transparent () {
-		return alloc_bool(false);
-	}
-	DEFINE_PRIME0 (remove_transparent);
-#endif
-
-
-#if defined(HX_WINDOWS)
-	static value hide_taskbar () {
-		HWND taskbar = FindWindowW(L"Shell_TrayWnd", NULL);
-		if (!taskbar) {
-			std::cout << "Finding taskbar failed with error: " << GetLastError() << std::endl;
-			return alloc_bool(false);
-		}
-		bool taskbarVisible = IsWindowVisible(taskbar);
-		ShowWindow(taskbar, SW_HIDE);
-		return alloc_bool(taskbarVisible);
-	}
-	DEFINE_PRIME0 (hide_taskbar);
-#else
-	static value hide_taskbar () {
-		return alloc_bool(false);
-	}
-	DEFINE_PRIME0 (hide_taskbar);
-#endif
-
-#if defined(HX_WINDOWS)
-	static value show_taskbar() {
-		HWND taskbar = FindWindowW(L"Shell_TrayWnd", NULL);
-		if (!taskbar) {
-			std::cout << "Finding taskbar failed with error: " << GetLastError() << std::endl;
-			return alloc_bool(false);
-		}
-		ShowWindow(taskbar, SW_SHOWNOACTIVATE);
-		return alloc_bool(true);
-	}
-	DEFINE_PRIME0 (show_taskbar);
-#else
-	static value show_taskbar () {
-		return alloc_bool(false);
-	}
-	DEFINE_PRIME0 (show_taskbar);
-#endif
+#include "Wallpaper.cpp"
+#include "Transparency.cpp"
+#include "Taskbar.cpp"
+#include "Window.cpp"
 
 
 #if defined(HX_WINDOWS)
@@ -288,53 +177,6 @@ value result = val_callN(root->get(), args, num_args);
 		return alloc_int(-1);
 	}
 	DEFINE_PRIME0 (get_ram);
-#endif
-
-#if defined(HX_WINDOWS)
-	static value hide_windows (value _windowTitle) {
-		const char* windowTitle = val_string(_windowTitle);
-		std::vector<std::string> winNames = {};
-		winNames.emplace_back(std::string(windowTitle));
-		EnumWindows(enumWinProc, reinterpret_cast<LPARAM>(&winNames));
-		ShowWindow(FindWindowA(NULL, windowTitle), SW_SHOW);
-
-		value hxNames = alloc_array(winNames.size());
-		for (int i = 1; i < winNames.size(); i++) {
-			val_array_set_i(hxNames, i - 1, alloc_string(winNames[i].c_str()));
-		}
-		val_array_set_i(hxNames, winNames.size() - 1, alloc_string(winNames[0].c_str()));
-		//Array_obj<String> *hxNames = new Array_obj<String>(winNames.size(), winNames.size());
-		//for (int i = 1; i < winNames.size(); i++) {
-		//	hxNames->Item(i - 1) = String(winNames[i].c_str());
-		//}
-		//hxNames->Item(winNames.size() - 1) = String(winNames[0].c_str());
-		return hxNames;
-	}
-	DEFINE_PRIME1 (hide_windows);
-#else
-	static value hide_windows (value _windowTitle) {
-		return alloc_bool(false);
-	}
-	DEFINE_PRIME1 (hide_windows);
-#endif
-
-#if defined(HX_WINDOWS)
-	static void show_windows(value prevHidden) {
-		int length = val_array_size(prevHidden);
-		for (int i = 0; i < length; i++) {
-			//HWND hwnd = FindWindowA(NULL, prevHidden->Item(i).c_str());
-			HWND hwnd = FindWindowA(NULL, val_string(val_array_i(prevHidden, i)));
-			if (hwnd != NULL) {
-				ShowWindow(hwnd, SW_SHOWNA);
-			}
-		}
-	}
-	DEFINE_PRIME1v (show_windows);
-#else
-	static void show_windows (value prevHidden) {
-		//return alloc_bool(false);
-	}
-	DEFINE_PRIME1v (show_windows);
 #endif
 
 // Examples
