@@ -1,22 +1,22 @@
 #if defined(HX_WINDOWS)
 	void _hide_window(HWND hwnd) {
-		//ShowWindow(hwnd, SW_HIDE);
+		ShowWindow(hwnd, SW_HIDE);
 		//int res = SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 		//if (res)
 		//	SetLayeredWindowAttributes(window, 0, 127, LWA_ALPHA);
 	}
 	void _show_window(HWND hwnd, bool active) {
-		//ShowWindow(hwnd, active ? SW_SHOW : SW_SHOWNA);
+		ShowWindow(hwnd, active ? SW_SHOW : SW_SHOWNA);
 		//SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
 		//int res = SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 		//if (res)
 		//	SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
 	}
-	void _show_window2(HWND hwnd, bool active) {
+	/*void _show_window2(HWND hwnd, bool active) {
 		//ShowWindow(hwnd, active ? SW_SHOW : SW_SHOWNA);
 		_show_window(hwnd, active);
 		//SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
-	}
+	}*/
 
 	static BOOL CALLBACK enumWinProc(HWND hwnd, LPARAM lparam) {
 		std::vector<std::string> *names = reinterpret_cast<std::vector<std::string> *>(lparam);
@@ -59,7 +59,7 @@
 			//HWND hwnd = FindWindowA(NULL, prevHidden->Item(i).c_str());
 			HWND hwnd = FindWindowA(NULL, val_string(val_array_i(prevHidden, i)));
 			if (hwnd != NULL) {
-				_show_window2(hwnd, false);
+				_show_window(hwnd, false);
 				//ShowWindow(hwnd, SW_SHOWNA);
 			}
 		}
