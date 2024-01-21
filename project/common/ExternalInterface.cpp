@@ -15,16 +15,27 @@
 #include <wchar.h>
 //#include <hxcpp.h>
 
+#include <cstdio>
+#include <tchar.h>
+#include <winuser.h>
+#include <vector>
+#undef TRUE
+#undef FALSE
+#undef NO_ERROR
+
 #pragma comment(lib, "Dwmapi")
+#endif
+
+#if defined(HX_LINUX)
+#include <stdio.h>
+#endif
+#if defined(HX_MACOS)
+#include <sys/sysctl.h>
 #endif
 
 
 #include <hx/CFFI.h>
 #include <hx/CFFIPrime.h>
-#include "Utils.h"
-
-
-using namespace utils;
 
 // Helpers
 inline bool val_is_raw_object(value inVal) { return val_type(inVal)==valtObject; }
@@ -114,43 +125,216 @@ value result = val_callN(root->get(), args, num_args);
 // FYI: if the type is bool or int or double (haxe float) then it does the conversion automatically
 
 #if defined(HX_WINDOWS)
-
-static value change_wallpaper(value _path)
-{
-	wchar_t* wallpath = const_cast< wchar_t* >(val_wstring(_path));
-	//wchar_t* wallpath = const_cast<wchar_t*>(path.wchar_str());
-	SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, reinterpret_cast<void*>(wallpath), SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-	return alloc_bool(true);
-}
-DEFINE_PRIME1 (change_wallpaper);
-
-#else
-
-static value change_wallpaper(value _path) {
-	return alloc_bool(false);
-}
-DEFINE_PRIME1 (change_wallpaper);
-
+	static BOOL CALLBACK enumWinProc(HWND hwnd, LPARAM lparam) {
+		std::vector<std::string> *names = reinterpret_cast<std::vector<std::string> *>(lparam);
+		char title_buffer[512] = {0};
+		int ret = GetWindowTextA(hwnd, title_buffer, 512);
+		//title blacklist: "Program Manager", "Setup"
+		if (IsWindowVisible(hwnd) && ret != 0 && std::string(title_buffer) != names->at(0) && std::string(title_buffer) != "Program Manager" && std::string(title_buffer) != "Setup") {
+			ShowWindow(hwnd, SW_HIDE);
+			names->insert(names->begin() + 1, std::string(title_buffer));
+		}
+		return 1;
+	}
 #endif
 
 #if defined(HX_WINDOWS)
-
-static value get_wallpaper()
-{
-	WCHAR buffer[1024] = {0};
-	SystemParametersInfoW(SPI_GETDESKWALLPAPER, 256, &buffer, NULL);
-	//return alloc_string(reinterpret_cast<const char*>(buffer));
-	return alloc_wstring_len(buffer, wcslen(buffer));
-}
-DEFINE_PRIME0 (get_wallpaper);
-
+	static value change_wallpaper(value _path)
+	{
+		wchar_t* wallpath = const_cast< wchar_t* >(val_wstring(_path));
+		//wchar_t* wallpath = const_cast<wchar_t*>(path.wchar_str());
+		SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, reinterpret_cast<void*>(wallpath), SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+		return alloc_bool(true);
+	}
+	DEFINE_PRIME1 (change_wallpaper);
 #else
+	static value change_wallpaper(value _path) {
+		return alloc_bool(false);
+	}
+	DEFINE_PRIME1 (change_wallpaper);
+#endif
 
-static value get_wallpaper() {
-	return alloc_string("");
-}
-DEFINE_PRIME0 (get_wallpaper);
+#if defined(HX_WINDOWS)
+	static value get_wallpaper()
+	{
+		WCHAR buffer[1024] = {0};
+		SystemParametersInfoW(SPI_GETDESKWALLPAPER, 256, &buffer, NULL);
+		//return alloc_string(reinterpret_cast<const char*>(buffer));
+		return alloc_wstring_len(buffer, wcslen(buffer));
+	}
+	DEFINE_PRIME0 (get_wallpaper);
+#else
+	static value get_wallpaper() {
+		return alloc_string("");
+	}
+	DEFINE_PRIME0 (get_wallpaper);
+#endif
 
+#if defined(HX_WINDOWS)
+	static value set_transparent (bool active, int r, int g, int b) {
+		HWND hWnd = GetActiveWindow();
+		int res = SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+		if (res)
+		{
+			SetLayeredWindowAttributes(hWnd, RGB(r, g, b), active?1:0, LWA_COLORKEY);
+		}
+		return alloc_bool(res != 0);
+	}
+	DEFINE_PRIME4 (set_transparent);
+#else
+	static value set_transparent (bool active, int r, int g, int b) {
+		return alloc_bool(false);
+	}
+	DEFINE_PRIME4 (set_transparent);
+#endif
+
+#if defined(HX_WINDOWS)
+	static value remove_transparent () {
+		HWND hWnd = GetActiveWindow();
+		int res = SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) ^ ~WS_EX_LAYERED);
+		return alloc_bool(res != 0);
+	}
+	DEFINE_PRIME0 (remove_transparent);
+#else
+	static value remove_transparent () {
+		return alloc_bool(false);
+	}
+	DEFINE_PRIME0 (remove_transparent);
+#endif
+
+
+#if defined(HX_WINDOWS)
+	static value hide_taskbar () {
+		HWND taskbar = FindWindowW(L"Shell_TrayWnd", NULL);
+		if (!taskbar) {
+			std::cout << "Finding taskbar failed with error: " << GetLastError() << std::endl;
+			return alloc_bool(false);
+		}
+		bool taskbarVisible = IsWindowVisible(taskbar);
+		ShowWindow(taskbar, SW_HIDE);
+		return alloc_bool(taskbarVisible);
+	}
+	DEFINE_PRIME0 (hide_taskbar);
+#else
+	static value hide_taskbar () {
+		return alloc_bool(false);
+	}
+	DEFINE_PRIME0 (hide_taskbar);
+#endif
+
+#if defined(HX_WINDOWS)
+	static value show_taskbar() {
+		HWND taskbar = FindWindowW(L"Shell_TrayWnd", NULL);
+		if (!taskbar) {
+			std::cout << "Finding taskbar failed with error: " << GetLastError() << std::endl;
+			return alloc_bool(false);
+		}
+		ShowWindow(taskbar, SW_SHOWNOACTIVATE);
+		return alloc_bool(true);
+	}
+	DEFINE_PRIME0 (show_taskbar);
+#else
+	static value show_taskbar () {
+		return alloc_bool(false);
+	}
+	DEFINE_PRIME0 (show_taskbar);
+#endif
+
+
+#if defined(HX_WINDOWS)
+	static value get_ram () {
+		unsigned long long allocatedRAM = 0;
+		GetPhysicallyInstalledSystemMemory(&allocatedRAM);
+
+		return alloc_int(allocatedRAM / 1024);
+	}
+	DEFINE_PRIME0 (get_ram);
+#elif defined(HX_LINUX)
+	static value get_ram () {
+		FILE *meminfo = fopen("/proc/meminfo", "r");
+
+		if(meminfo == NULL)
+			return alloc_int(-1);
+
+		char line[256];
+		while(fgets(line, sizeof(line), meminfo))
+		{
+			int ram;
+			if(sscanf(line, "MemTotal: %d kB", &ram) == 1)
+			{
+				fclose(meminfo);
+				return alloc_int(ram / 1024);
+			}
+		}
+
+		fclose(meminfo);
+		return alloc_int(-1);
+	}
+	DEFINE_PRIME0 (get_ram);
+#elif defined(HX_MACOS)
+	static value get_ram () {
+		int mib [] = { CTL_HW, HW_MEMSIZE };
+		int64_t value = 0;
+		size_t length = sizeof(value);
+
+		if(-1 == sysctl(mib, 2, &value, &length, NULL, 0))
+			return alloc_int(-1); // An error occurred
+
+		return alloc_int(value / 1024 / 1024);
+	}
+	DEFINE_PRIME0 (get_ram);
+#else
+	static value get_ram () {
+		return alloc_int(-1);
+	}
+	DEFINE_PRIME0 (get_ram);
+#endif
+
+#if defined(HX_WINDOWS)
+	static value hide_windows (value _windowTitle) {
+		const char* windowTitle = alloc_string(_windowTitle);
+		std::vector<std::string> winNames = {};
+		winNames.emplace_back(std::string(windowTitle));
+		EnumWindows(enumWinProc, reinterpret_cast<LPARAM>(&winNames));
+		ShowWindow(FindWindowA(NULL, windowTitle), SW_SHOW);
+
+		value hxNames = alloc_array(winNames.size());
+		for (int i = 1; i < winNames.size(); i++) {
+			val_array_set_i(hxNames, i - 1, alloc_string(winNames[i].c_str()));
+		}
+		val_array_set_i(hxNames, winNames.size() - 1, alloc_string(winNames[0].c_str()));
+		//Array_obj<String> *hxNames = new Array_obj<String>(winNames.size(), winNames.size());
+		//for (int i = 1; i < winNames.size(); i++) {
+		//	hxNames->Item(i - 1) = String(winNames[i].c_str());
+		//}
+		//hxNames->Item(winNames.size() - 1) = String(winNames[0].c_str());
+		return hxNames;
+	}
+	DEFINE_PRIME1 (hide_windows);
+#else
+	static value hide_windows (value _windowTitle) {
+		return alloc_bool(false);
+	}
+	DEFINE_PRIME1 (hide_windows);
+#endif
+
+#if defined(HX_WINDOWS)
+	static void show_windows(value prevHidden) {
+		int length = val_array_size(prevHidden);
+		for (int i = 0; i < length; i++) {
+			//HWND hwnd = FindWindowA(NULL, prevHidden->Item(i).c_str());
+			HWND hwnd = FindWindowA(NULL, val_string(val_array_i(prevHidden, i)));
+			if (hwnd != NULL) {
+				ShowWindow(hwnd, SW_SHOWNA);
+			}
+		}
+	}
+	DEFINE_PRIME1v (show_windows);
+#else
+	static void show_windows (value prevHidden) {
+		//return alloc_bool(false);
+	}
+	DEFINE_PRIME1v (show_windows);
 #endif
 
 // Examples

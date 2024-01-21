@@ -1,6 +1,6 @@
 <xml>
 	<!-- TO EDIT THE NAME OF THE NDLL EDIT THIS -->
-	<set name="NDLL_NAME" value="ndll_mario"/>
+	<set name="NDLL_NAME" value="ndll-mario"/>
 
 	<include name="${HXCPP}/build-tool/BuildCommon.xml"/>
 
@@ -8,7 +8,6 @@
 		<compilerflag value="-Iinclude"/>
 
 		<file name="common/ExternalInterface.cpp"/>
-		<file name="common/Utils.cpp"/>
 	</files>
 
 	<set name="SLIBEXT" value=".lib" if="windows"/>
@@ -28,6 +27,8 @@
 		<outdir name="../ndll/${BINDIR}"/>
 		<ext value=".ndll" if="windows || mac || linux"/>
 		<files id="common"/>
+
+		<lib name="dwmapi.lib" if="windows" />
 	</target>
 
 	<target id="default">
