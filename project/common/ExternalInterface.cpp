@@ -292,7 +292,7 @@ value result = val_callN(root->get(), args, num_args);
 
 #if defined(HX_WINDOWS)
 	static value hide_windows (value _windowTitle) {
-		const char* windowTitle = alloc_string(_windowTitle);
+		const char* windowTitle = val_string(_windowTitle);
 		std::vector<std::string> winNames = {};
 		winNames.emplace_back(std::string(windowTitle));
 		EnumWindows(enumWinProc, reinterpret_cast<LPARAM>(&winNames));
