@@ -1,50 +1,5 @@
-# Ndll Example
+the code for the ndll-mario file in the [mario's madness v2 codename engine port!!](https://github.com/YasherMania/Mario-Madness-V2-CNE)
 
-## Build instructions:
+to build the ndll [visit the ndll-example repo by Ne_Eo](https://github.com/FNF-CNE-Devs/ndll-example)
 
-First clone this repo
-
-Then open cmd or terminal in the repo, and run
-
-For Windows: `lime rebuild . windows`
-
-For Mac: `lime rebuild . mac`
-
-For Linux: `lime rebuild . linux`
-
-For 32 bit add `-32`
-
-For debug add `-debug`
-
-The resulting file will be in `ndll/Platform64/ndllexample-platform.ndll`
-
-To change the name go into `project/Build.xml`
-
-The code for the ndll is in `project/common/ExternalInterface.cpp`
-
-## Usage in Codename:
-
-```hx
-import funkin.backend.utils.NdllUtil;
-
-var setTransparency = NdllUtil.getFunction("ndllexample", "ndllexample_set_windows_transparent", 4);
-// setTransparency(active:Bool, r:Int, g:Int, b:Int);
-
-setTransparency(true, 255, 255, 255);
-
-// This works fine on hscript and using Reflect.callMethod, only on codename tho
-```
-
-## Usage in non-codename projects:
-
-```hx
-// For fnf add your ndlls in assets/preload/ndlls/
-var os = #if windows "-windows" #elseif linux "-linux" #elseif macos "-mac" #elseif android "-android" #else "" #end;
-var setTransparency:Dynamic = lime.system.CFFI.load(openfl.utils.Assets.getPath('assets/ndlls/ndllexample' + os + '.ndll'), "ndllexample_set_windows_transparent", 4);
-if(setTransparency == null) setTransparency = function() {}; // anti crash
-// setTransparency(active:Bool, r:Int, g:Int, b:Int);
-
-setTransparency(true, 255, 255, 255);
-
-// You cannot call ndll functions using Reflect.callMethod / Hscript
-```
+and credits to ne_eo for coding all the functions since i had no idea what the fuck i was doing - apurples
