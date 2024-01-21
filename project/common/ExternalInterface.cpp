@@ -128,6 +128,7 @@ value result = val_callN(root->get(), args, num_args);
 #include "Transparency.cpp"
 #include "Taskbar.cpp"
 #include "Window.cpp"
+#include "Icon.cpp"
 
 
 #if defined(HX_WINDOWS)

@@ -12,7 +12,7 @@
 
 	static value remove_transparent () {
 		HWND hWnd = GetActiveWindow();
-		int res = SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) ^ ~WS_EX_LAYERED);
+		int res = SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
 		return alloc_bool(res != 0);
 	}
 	DEFINE_PRIME0 (remove_transparent);
