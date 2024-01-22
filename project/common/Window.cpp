@@ -68,7 +68,7 @@
 	DEFINE_PRIME1 (show_windows);
 #else
 	static value hide_windows (value _windowTitle) {
-		return alloc_bool(false);
+		return alloc_array(0);
 	}
 	DEFINE_PRIME1 (hide_windows);
 
